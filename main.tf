@@ -15,13 +15,14 @@ data "aws_ami" "ubuntu" {
 
 // Web tier
 module "vpc" {
-  source  = "./modules/vpc"
+  source = "./modules/vpc"
 }
 
 module "alb" {
-  source  = "./modules/alb"
+  source            = "./modules/alb"
   vpc_id            = module.vpc.vpc_id
   public_subnet_ids = module.vpc.public_subnet_ids
+  alb_security_group_id = module.vpc.alb_security_group_id
 }
 
 // App tier
@@ -35,29 +36,44 @@ resource "aws_security_group" "app_sg" {
   }
 }
 resource "aws_security_group_ingress_rule" "allow_inbound_alb" {
-  cidr_ipv4         = module.vpc.vpc_cidr_block
-  from_port         = 80
-  ip_protocol       = "tcp"
-  to_port           = 80
+  from_port                = 80
+  ip_protocol              = "tcp"
+  to_port                  = 80
   source_security_group_id = module.alb.alb_security_group_id
-  security_group_id = aws_security_group.app_sg.id
+  security_group_id        = aws_security_group.app_sg.id
+}
+resource "aws_security_group_egress_rule" "allow_outbound_alb" {
+  ip_protocol              = "-1"
+  cidr_ipv4               = "0.0.0.0/0"
+  source_security_group_id = module.alb.alb_security_group_id
+  security_group_id        = aws_security_group.app_sg.id
 }
 
 resource "aws_launch_template" "launch_template" {
-  name_prefix   = "ha-app-server-"
-  image_id      = data.aws_ami.ubuntu.id
-  instance_type = "t3.micro"
+  name_prefix            = "ha-app-server-"
+  image_id               = data.aws_ami.ubuntu.id
+  instance_type          = "t3.micro"
+  vpc_security_group_ids = [aws_security_group.app_sg.id]
   lifecycle {
     create_before_destroy = true
   }
+  user_data = base64encode(<<-EOF
+              #!/bin/bash
+              apt-get update
+              apt-get install -y nginx
+              systemctl start nginx
+              systemctl enable nginx
+              echo "<h1>Hello from the App Tier</h1>" > /var/www/html/index.html
+              EOF
+  )
 }
 
 resource "aws_autoscaling_group" "asg" {
-  availability_zones = ["us-west-2a", "us-west-2b"]
-  desired_capacity   = 2
-  max_size           = 3
-  min_size           = 1
-  target_group_arns = [module.alb.target_group_arn]
+  vpc_zone_identifier = module.vpc.private_subnet_ids
+  desired_capacity    = 2
+  max_size            = 3
+  min_size            = 1
+  target_group_arns   = [module.alb.target_group_arn]
   launch_template {
     id      = aws_launch_template.launch_template.id
     version = "$Latest"
