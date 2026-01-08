@@ -1,0 +1,1 @@
+Application Load balance to ensure traffic is directed to asg via nat gateway

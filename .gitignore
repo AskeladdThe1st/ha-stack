@@ -1,0 +1,12 @@
+# Ignore the entire terraform provider and module cache
+.terraform/
+
+# Ignore the lock file (contains local system hashes)
+.terraform.lock.hcl
+
+# Ignore all state files
+*.tfstate
+*.tfstate.backup
+
+# Ignore variables
+*.tfvars
