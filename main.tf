@@ -22,7 +22,29 @@ module "alb" {
   source            = "./modules/alb"
   vpc_id            = module.vpc.vpc_id
   public_subnet_ids = module.vpc.public_subnet_ids
-  alb_security_group_id = module.vpc.alb_security_group_id
+}
+
+resource "aws_security_group" "alb_security_group_id" {
+  name        = "alb-sg"
+  description = "Allow inbound traffic to load balancer"
+  vpc_id      = module.vpc.vpc_id
+
+}
+resource "aws_security_group_rule" "allow_http_inbound" {
+  type              = "ingress"
+  from_port        = 80
+  to_port          = 80
+  protocol         = "tcp"
+  cidr_blocks     = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.alb_security_group_id.id
+}
+resource "aws_security_group_rule" "allow_all_outbound" {
+  type              = "egress"
+  from_port        = 0
+  to_port          = 0
+  protocol         = "-1"
+  cidr_blocks     = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.alb_security_group_id.id
 }
 
 // App tier
