@@ -22,9 +22,10 @@ module "alb" {
   source            = "./modules/alb"
   vpc_id            = module.vpc.vpc_id
   public_subnet_ids = module.vpc.public_subnet_ids
+  alb_security_group_id = aws_security_group.alb-sg.id
 }
 
-resource "aws_security_group" "alb_security_group_id" {
+resource "aws_security_group" "alb-sg" {
   name        = "alb-sg"
   description = "Allow inbound traffic to load balancer"
   vpc_id      = module.vpc.vpc_id
@@ -32,19 +33,19 @@ resource "aws_security_group" "alb_security_group_id" {
 }
 resource "aws_security_group_rule" "allow_http_inbound" {
   type              = "ingress"
-  from_port        = 80
-  to_port          = 80
-  protocol         = "tcp"
-  cidr_blocks     = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.alb_security_group_id.id
+  from_port         = 80
+  to_port           = 80
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.alb-sg.id
 }
 resource "aws_security_group_rule" "allow_all_outbound" {
   type              = "egress"
-  from_port        = 0
-  to_port          = 0
-  protocol         = "-1"
-  cidr_blocks     = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.alb_security_group_id.id
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.alb-sg.id
 }
 
 // App tier
@@ -57,17 +58,21 @@ resource "aws_security_group" "app_sg" {
     Name = "app-sg"
   }
 }
-resource "aws_security_group_ingress_rule" "allow_inbound_alb" {
+resource "aws_security_group_rule" "allow_inbound_alb" {
+  type                     = "ingress"
   from_port                = 80
-  ip_protocol              = "tcp"
   to_port                  = 80
-  source_security_group_id = module.alb.alb_security_group_id
+  protocol                 = "tcp"
   security_group_id        = aws_security_group.app_sg.id
+  source_security_group_id = aws_security_group.alb-sg.id
 }
-resource "aws_security_group_egress_rule" "allow_outbound_alb" {
-  ip_protocol              = "-1"
-  cidr_ipv4               = "0.0.0.0/0"
-  source_security_group_id = module.alb.alb_security_group_id
+resource "aws_security_group_rule" "allow_outbound_alb" {
+  type                     = "egress"
+  from_port                = 0
+  to_port                  = 0
+  protocol                 = "-1"
+  cidr_blocks              = ["0.0.0.0/0"]
+  source_security_group_id = aws_security_group.alb-sg.id
   security_group_id        = aws_security_group.app_sg.id
 }
 
