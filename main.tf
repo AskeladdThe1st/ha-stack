@@ -19,9 +19,9 @@ module "vpc" {
 }
 
 module "alb" {
-  source            = "./modules/alb"
-  vpc_id            = module.vpc.vpc_id
-  public_subnet_ids = module.vpc.public_subnet_ids
+  source                = "./modules/alb"
+  vpc_id                = module.vpc.vpc_id
+  public_subnet_ids     = module.vpc.public_subnet_ids
   alb_security_group_id = aws_security_group.alb-sg.id
 }
 
@@ -67,12 +67,12 @@ resource "aws_security_group_rule" "allow_inbound_alb" {
   source_security_group_id = aws_security_group.alb-sg.id
 }
 resource "aws_security_group_rule" "allow_outbound_alb" {
-  type                     = "egress"
-  from_port                = 0
-  to_port                  = 0
-  protocol                 = "-1"
-  cidr_blocks              = ["0.0.0.0/0"]
-  security_group_id        = aws_security_group.app_sg.id
+  type              = "egress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.app_sg.id
 }
 
 resource "aws_launch_template" "launch_template" {
@@ -89,7 +89,6 @@ resource "aws_launch_template" "launch_template" {
               apt-get install -y nginx
               systemctl start nginx
               systemctl enable nginx
-              echo "<h1>Hello from the App Tier</h1>" > /var/www/html/index.html
               EOF
   )
 }
