@@ -24,7 +24,7 @@ resource "aws_lb_target_group" "alb-tg" {
   name        = var.tg-name
   target_type = "alb"
   port        = 80
-  protocol    = "TCP"
+  protocol    = "HTTP"
   vpc_id      = var.vpc_id
 }
 
